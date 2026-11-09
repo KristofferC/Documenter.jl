@@ -38,6 +38,15 @@ const DOCUMENTER_VERSION = let
 end
 
 # Potentially sensitive variables to be removed from environment when not needed
+"""
+    TERMINAL_OUTPUT_RENDERER
+
+Holds `nothing`, or a function that takes the captured output of an `@example`
+or `@repl` block and returns it with cursor movement and line clearing applied,
+as a terminal would show it. Set by the GhosttyVT package extension.
+"""
+const TERMINAL_OUTPUT_RENDERER = Ref{Any}(nothing)
+
 const NO_KEY_ENV = Dict(
     "DOCUMENTER_KEY" => nothing,
     "DOCUMENTER_KEY_PREVIEWS" => nothing,

@@ -977,7 +977,7 @@ function Selectors.runner(::Type{Expanders.ExampleBlocks}, node, page, doc)
     # Only add content when there's actually something to add.
     isempty(input) || push!(content, Node(MarkdownAST.CodeBlock("julia", input)))
     if result === nothing
-        stdouterr = Documenter.sanitise(buffer)
+        stdouterr = Documenter.sanitise(IOBuffer(render_terminal_output(String(take!(buffer)))))
         stdouterr = remove_sandbox_from_output(stdouterr, sandbox)
         isempty(stdouterr) || push!(content, Node(Documenter.MultiOutputElement(Dict{MIME, Any}(MIME"text/plain"() => stdouterr))))
     elseif !isempty(output)
@@ -987,6 +987,15 @@ function Selectors.runner(::Type{Expanders.ExampleBlocks}, node, page, doc)
     node.element = Documenter.MultiOutput(x)
     append!(node.children, content)
     return
+end
+
+# Interpret the cursor movement and line clearing in captured output (`\r` redraws of
+# progress bars, cursor-up redraws, ...) when a renderer is available; see
+# `TERMINAL_OUTPUT_RENDERER`.
+function render_terminal_output(str::AbstractString)
+    render = Documenter.TERMINAL_OUTPUT_RENDERER[]
+    (render === nothing || !occursin(r"[\r\e]", str)) && return str
+    return render(str)::String
 end
 
 # Replace references to gensym'd module with Main
@@ -1054,7 +1063,7 @@ function Selectors.runner(::Type{Expanders.REPLBlocks}, node, page, doc)
             push!(multicodeblock, MarkdownAST.CodeBlock("julia-repl", prepend_prompt(input)))
         end
         out = IOBuffer()
-        print(out, c.output) # c.output is std(out|err)
+        print(out, render_terminal_output(c.output)) # c.output is std(out|err)
         if isempty(input) || isempty(output)
             println(out)
         else
